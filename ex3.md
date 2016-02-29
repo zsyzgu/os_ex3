@@ -3,39 +3,37 @@
 #### 3.1 BIOS
 ---
 ##### 1.比较UEFI和BIOS的区别。
-“统一的可扩展固件接口”(Unified Extensible Firmware Interface)， 是一种详细描述类型接口的标准。这种接口用于操作系统自动从预启动的操作环境，加载到一种操作系统上。
+* UEFI(统一的可扩展固件接口, Unified Extensible Firmware Interface)， 是一种详细描述类型接口的标准。这种接口用于操作系统自动从预启动的操作环境，加载到一种操作系统上。
+* BIOS是一组固化到计算机内主板上一个ROM芯片上的程序，它保存着计算机最重要的基本输入输出的程序、开机后自检程序和系统自启动程序，它可从CMOS中读写系统设置的具体信息。
+* UEFI和BIOS的区别在于，UEFI是BIOS的一种升级替代方案。关于BIOS和UEFI二者的比较，如果仅从系统启动原理方面来做比较，UEFI之所以比BIOS强大，是因为UEFI本身已经相当于一个微型操作系统。
 
 ##### 2.描述PXE的大致启动流程。
-BIOS
-主引导记录
-硬盘系统
-操作系统
+* BIOS
+* 主引导记录
+* 硬盘系统
+* 操作系统
 
 #### 3.2 系统启动流程
 ---
 ##### 1.了解NTLDR的启动流程
 
 NTLDR是一个隐藏的，只读的系统文件，位置在系统盘的根目录，用来装载操作系统。是windows nt 4.0/windows 2000/windows xp/windows server 2003的引导文件，所以应该在系统正常的时候给予备份。
-正常系统引导过程
+正常系统引导过程：
 NTLDR文件的是一个隐藏的，只读的系统文件，位置在系统盘的根目录，用来装载操作系统。
-一般情况系统的引导过程是这样的代码
-1：电源自检程序开始运行
-2：主引导记录被装入内存，并且程序开始执行
-3：活动分区的引导扇区被装入内存
-4：NTLDR从引导扇区被装入并初始化
-5：将处理器的实模式改为32位平滑内存模式
-6：NTLDR开始运行适当的小文件系统驱动程序。
-小文件系统驱动程序是建立在NTLDR内部的，它能读FAT或NTFS。
-7：NTLDR读boot.ini文件
-8：NTLDR装载所选操作系统
-如果windows NT/windows 2000/windows XP/windows server 2003这些操作系统被选择，NTLDR运行Ntdetect。
-对于其他的操作系统，NTLDR装载并运行Bootsect.dos然后向它传递控制。
-windows NT过程结束。
-9：Ntdetect搜索计算机硬件并将列表传送给NTLDR，以便将这些信息写进\\HKE Y_LOCAL_MACHINE\HARDWARE中。
-10：然后NTLDR装载Ntoskrnl.exe，Hal.dll和系统信息集合。
-11：Ntldr搜索系统信息集合，并装载设备驱动配置以便设备在启动时开始工作
-12：Ntldr把控制权交给Ntoskrnl.exe，这时，启动程序结束，装载阶段开始
-
+一般情况系统的引导过程是这样的代码：
+* 1：电源自检程序开始运行
+* 2：主引导记录被装入内存，并且程序开始执行
+* 3：活动分区的引导扇区被装入内存
+* 4：NTLDR从引导扇区被装入并初始化
+* 5：将处理器的实模式改为32位平滑内存模式
+* 6：NTLDR开始运行适当的小文件系统驱动程序。
+* 小文件系统驱动程序是建立在NTLDR内部的，它能读FAT或NTFS。
+* 7：NTLDR读boot.ini文件
+* 8：NTLDR装载所选操作系统，如果windows NT/windows 2000/windows XP/windows server 2003这些操作系统被选择，NTLDR运行Ntdetect。对于其他的操作系统，NTLDR装载并运行Bootsect.dos然后向它传递控制。
+* 9：Ntdetect搜索计算机硬件并将列表传送给NTLDR，以便将这些信息写进\\HKE Y_LOCAL_MACHINE\HARDWARE中。
+* 10：然后NTLDR装载Ntoskrnl.exe，Hal.dll和系统信息集合。
+* 11：Ntldr搜索系统信息集合，并装载设备驱动配置以便设备在启动时开始工作
+* 12：Ntldr把控制权交给Ntoskrnl.exe，这时，启动程序结束，装载阶段开始
 
 ##### 2.了解GRUB的启动流程
 当系统加电后，固化在BIOS中的程序首先对系统硬件进行自检，自检通过后，就加载启动磁盘上的MBR，并将控制权交给MBR中的程序(stage1)，stage1执行，判断自己是否GRUB，如果是且配置了stage1_5，则加载stage1_5，否则就转去加载启动扇区，接着，stage2被加载并执行，由stage2借助stage1_5驱动文件系统，并查找grub.conf，显示启动菜单供用户选择，然后根据用户的选择或默认配置加载操作系统内核，并将控制权交给操作系统内核，由内核完成操作系统的启动。
@@ -113,27 +111,49 @@ lab1-ex0.exe: ELF 32-bit LSB  executable, Intel 80386, version 1 (SYSV), dynamic
 将lab1-ex1.c编译，使用strace可以跟踪进程lab1-ex1.exe产生的系统调用：
 ```
 gcc -o lab1-ex1.exe lab1-ex1.c
-strace -c ./lab1-ex1.exe
+strace -f ./lab1-ex1.exe
 ```
 ```
 hello world
-% time     seconds  usecs/call     calls    errors syscall
------- ----------- ----------- --------- --------- ----------------
- 34.10    0.000104          35         3         3 access
- 22.30    0.000068           9         8           mmap
- 15.08    0.000046          12         4           mprotect
-  7.87    0.000024          24         1           write
-  6.89    0.000021          11         2           open
-  6.56    0.000020          20         1           munmap
-  2.95    0.000009           3         3           fstat
-  1.31    0.000004           2         2           close
-  0.98    0.000003           3         1           read
-  0.98    0.000003           3         1           execve
-  0.66    0.000002           2         1           arch_prctl
-  0.33    0.000001           1         1           brk
------- ----------- ----------- --------- --------- ----------------
-100.00    0.000305                    28         3 total
+execve("./lab1-ex1.exe", ["./lab1-ex1.exe"], [/* 73 vars */]) = 0
+brk(0)                                  = 0x24e3000
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f9175169000
+access("/etc/ld.so.preload", R_OK)      = -1 ENOENT (No such file or directory)
+open("/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 3
+fstat(3, {st_mode=S_IFREG|0644, st_size=93381, ...}) = 0
+mmap(NULL, 93381, PROT_READ, MAP_PRIVATE, 3, 0) = 0x7f9175152000
+close(3)                                = 0
+access("/etc/ld.so.nohwcap", F_OK)      = -1 ENOENT (No such file or directory)
+open("/lib/x86_64-linux-gnu/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\0\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\320\37\2\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0755, st_size=1845024, ...}) = 0
+mmap(NULL, 3953344, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7f9174b83000
+mprotect(0x7f9174d3e000, 2097152, PROT_NONE) = 0
+mmap(0x7f9174f3e000, 24576, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1bb000) = 0x7f9174f3e000
+mmap(0x7f9174f44000, 17088, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7f9174f44000
+close(3)                                = 0
+mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f9175151000
+mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f917514f000
+arch_prctl(ARCH_SET_FS, 0x7f917514f740) = 0
+mprotect(0x7f9174f3e000, 16384, PROT_READ) = 0
+mprotect(0x600000, 4096, PROT_READ)     = 0
+mprotect(0x7f917516b000, 4096, PROT_READ) = 0
+munmap(0x7f9175152000, 93381)           = 0
+fstat(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 0), ...}) = 0
+mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f9175168000
+write(1, "hello world\n", 12hello world
+)           = 12
+exit_group(12)                          = ?
++++ exited with 12 +++
+
 ```
+以上信息为执行lab1-ex1.exe时，依次用的系统调用，我们可以分析这些系统调用的功能：
+* 首先调用execve，运行该可执行文件。
+* 然后通过access、fstat和mmap等系统调用来加载各种动态库，并将映射文件加载到内存中。
+* mprotect是更改程序对内存段的权限。
+* 最后程序退出，使用munmap取消映射，再使用close结束该程序。
+
 再使用以下命令查看进程产生的系统中断。
 ```
 more /proc/interrupts
@@ -170,10 +190,9 @@ MIS:          0
 
 #### 3.5 ucore系统调用分析
 ---
-
-ucore的系统调用中参数传递代码分析。
-以getpid为例，分析ucore的系统调用中返回结果的传递代码。
-以ucore lab8的answer为例，分析ucore 应用的系统调用编写和含义。
-以ucore lab8的answer为例，尝试修改并运行ucore OS kernel代码，使其具有类似Linux应用工具strace的功能，即能够显示出应用程序发出的系统调用，从而可以分析ucore应用的系统调用执行过程。
+##### 1.ucore的系统调用中参数传递代码分析。
+##### 2.以getpid为例，分析ucore的系统调用中返回结果的传递代码。
+##### 3.以ucore lab8的answer为例，分析ucore 应用的系统调用编写和含义。
+##### 4.以ucore lab8的answer为例，尝试修改并运行ucore OS kernel代码，使其具有类似Linux应用工具strace的功能，即能够显示出应用程序发出的系统调用，从而可以分析ucore应用的系统调用执行过程。
 
 
