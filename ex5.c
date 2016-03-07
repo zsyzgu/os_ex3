@@ -5,6 +5,8 @@
 #define MAXN 10
 #define MAXM 32  
 
+static char allocbuf[MAXM];
+
 struct Block {
 	int start;
 	int size;
@@ -37,7 +39,7 @@ void pmm_output() {
 	printf("%s\n", str);
 }
 
-void pmm_alloc(int size) {
+void* pmm_alloc(int size) {
 	int i, j;
 	int id = -1;
 	
@@ -69,6 +71,7 @@ void pmm_alloc(int size) {
 	}
 
 	pmm_output();
+	return (char*)allocbuf + fr[id].start;
 }
 
 void pmm_free(int id) {
@@ -121,7 +124,7 @@ int main() {
 	for (i = 0; i < MAXN; i++) {
 		int mem = rand() % MAXM + 1;
 		printf("[alloc] size = %d\n", mem);
-		pmm_alloc(mem);
+		char* array = pmm_alloc(mem);
 
 		if (m > 0 && (rand() & 1) == 0) {
 			int id = rand() % m;
