@@ -1,13 +1,223 @@
-### 个人思考题
+## 个人思考题
 
 #### 请简要分析最优匹配，最差匹配，最先匹配，buddy system分配算法的优势和劣势，并尝试提出一种更有效的连续内存分配算法 (w3l1)
 
-分配算法| 最先匹配（First-fit）| 最佳匹配（Best-fit）| 最差匹配（Worst-fit) | 伙伴系统（Buddy System）
------- | ------------------ | --------------- | ----------------
-优势 | 简单、在高地址空间有大块的空闲分区 | 大部分分配的尺寸较小时效果最好 | 中等大小的分配较多时效果最好、避免出现太多的小碎片 | 能很好地解决外部碎片问题
-劣势 | 会产生外部碎片、分配大块时较慢 | 会产生外部碎片、释放分区过程较慢 | 会产生外部碎片、释放分区过程较慢、容易破坏大的空闲分区，因此后续难以分配大的分区 | 分区大小只能是2的整数次幂，可能产生资源浪费
+|分配算法| 最先匹配（First-fit）| 最佳匹配（Best-fit）| 最差匹配（Worst-fit) | 伙伴系统（Buddy System）|
+|------ | ------------------ | --------------- | ----------------|
+|优势 | 简单、在高地址空间有大块的空闲分区 | 大部分分配的尺寸较小时效果最好 | 中等大小的分配较多时效果最好、避免出现太多的小碎片 | 能很好地解决外部碎片问题|
+|劣势 | 会产生外部碎片、分配大块时较慢 | 会产生外部碎片、释放分区过程较慢 | 会产生外部碎片、释放分区过程较慢、容易破坏大的空闲分区，因此后续难以分配大的分区 | 分区大小只能是2的整数次幂，可能产生资源浪费|
 
-### “连续内存分配”与视频相关的课堂练习
+## 小组思考题
+###### 请参考xv6（umalloc.c），ucore lab2代码，选择四种（0:最优匹配，1:最差匹配，2:最先匹配，3:buddy systemm）分配算法中的一种或多种，在Linux应用程序/库层面，用C、C++或python来实现malloc/free，给出你的设计思路，并给出可以在Linux上运行的malloc/free实现和测试用例。 (spoc)
+
+* 我的学号mod 4为2，先做最先分配算法。
+
+一开始开一块给内存管理使用的存储空间。
+``` cpp
+static char allocbuf[MAXM];
+```
+
+写测试代码，测试方法为每一轮分配随机大小的内测，然后以50%的概率随机释放内存：
+``` cpp
+int main() {
+	init(); # 算法初始化使用
+
+	int i;
+	for (i = 0; i < MAXN; i++) {
+		int mem = rand() % MAXM + 1; # MAXM = 32bit为最大内存，这里随机一个数，本轮需要申请这么大的空间
+		printf("[alloc] size = %d\n", mem); # 输出提示
+		char* array = pmm_alloc(mem); # 调用pmm_alloc函数申请内存空间，mem为要申请的大小。获得其地址。
+
+		if (m > 0 && (rand() & 1) == 0) { # 如果内存中还有被占用的空间，以50%的概率释放其中一个
+			int id = rand() % m;
+			printf("[free] addr = %d, size = %d\n", us[id].start, us[id].size);
+			pmm_free(id); # 调用pmm_free释放编号为id的已申请内存
+		}
+	}
+	
+	return 0;
+}
+```
+在pmm_alloc和pmm_free函数处理的最后，都调用output函数，显示目前内存的使用情况，以人工检查算法是否正确。
+输出方法为，32位的内存空间中，"_"表示未被使用，"*"表示已被占用：
+
+``` cpp
+struct Block {
+	int start; # 内存块起始位置
+	int size; # 内存块大小
+};
+int n, m; # 分别是空闲内存块数量和被占用内存块数量
+struct Block fr[MAXN]; # 空闲的内存块，按start从小到大排序，相邻内存块需要合并
+struct Block us[MAXN]; # 被占用的内存块，不需要排序（按内测申请的次序顺列），相邻内存块不能合并
+
+void pmm_output() {
+	int i, j;
+
+	char str[MAXM + 1];
+	str[MAXM] = '\0';
+	for (i = 0; i < MAXM; i++) {
+		str[i] = '*'; # '*'表示被占用的内存
+	}
+	for (i = 0; i < n; i++) {
+		for (j = 0; j < fr[i].size; j++) {
+			str[fr[i].start + j] = '_'; # 其中'_'表示未被使用的内存。
+		}
+	}
+	printf("%s\n", str);
+}
+```
+接下来就是申请内存空间的pmm_alloc函数：
+
+``` cpp
+void* pmm_alloc(int size) { # 申请大小为size的内存空间
+	int i, j;
+	int id = -1;
+	
+	for (i = 0; i < n; i++) {
+		if (fr[i].size >= size) {
+			if (id == -1 || fr[i].start < fr[id].start) { # 寻找最先的空闲内存
+				id = i;
+			}
+		}
+	}
+	
+	if (id == -1) { # 找不到就是没有足够的内存
+		printf("no space!\n");
+		return;
+	}
+
+	us[m].start = fr[id].start; # 标记为被占用
+	us[m].size = size;
+	m++;
+
+	if (fr[id].size == size) {
+		for (i = id; i < n; i++) { # 如果整个内存块刚好被用完，删除该内存块
+			fr[i] = fr[i + 1];
+		}
+		n--;
+	} else {
+		fr[id].start += size; # 该内存块没被用完，大小减去size
+		fr[id].size -= size;
+	}
+
+	pmm_output(); # 输出一下
+    return (char*)allocbuf + fr[id].start; # 返回申请到的内存地址
+}
+```
+
+内存释放的pmm_free函数：
+``` cpp
+void pmm_free(int id) {
+	int i, j;
+
+	int addr = us[id].start;
+	int size=  us[id].size;
+	
+	for (i = id; i < m; i++) { # 删除这块内存被使用的标记
+		us[i] = us[i + 1];
+	}
+	m--;
+
+	for (i = 0; i < n; i++) { # 将刚被释放的内存块按顺序放回空闲内存块列表中
+		if (fr[i].start > addr) {
+			break;
+		}
+	}
+	for (j = n; j > i; j--) {
+		fr[j] = fr[j - 1];
+	}
+	n++;
+	fr[i].start = addr;
+	fr[i].size = size;
+
+	while (i - 1 >= 0 && fr[i - 1].start + fr[i - 1].size == fr[i].start) { # 往前合并
+		fr[i - 1].size += fr[i].size;
+		for (j = i; j < n; j++) {
+			fr[j] = fr[j + 1];
+		}
+		n--;
+		i--;
+	}
+
+	while (i + 1 < n && fr[i].start + fr[i].size == fr[i + 1].start) { # 往后合并
+		fr[i].size += fr[i + 1].size;
+		for (j = i + 1; j < n; j++) {
+			fr[j] = fr[j + 1];
+		}
+		n--;
+	}
+
+	pmm_output();
+}
+```
+至此，最先分配算法实现，下面是运行结果：
+
+```
+[alloc] size = 27
+***************************_____
+[free] addr = 0, size = 27
+________________________________
+[alloc] size = 29
+*****************************___
+[free] addr = 0, size = 29
+________________________________
+[alloc] size = 4
+****____________________________
+[alloc] size = 16
+********************____________
+[free] addr = 4, size = 16
+****____________________________
+[alloc] size = 27
+*******************************_
+[alloc] size = 16
+no space!
+[free] addr = 0, size = 4
+____***************************_
+[alloc] size = 4
+*******************************_
+[alloc] size = 22
+no space!
+[free] addr = 4, size = 27
+****____________________________
+[alloc] size = 29
+no space!
+[free] addr = 0, size = 4
+________________________________
+[alloc] size = 31
+*******************************_
+```
+
+人工检查发现结果无误.
+
+* 然后尝试实现最优分配算法和最差分配算法。
+
+只需稍作改动（对内存分配函数pmm_alloc），就能实现。
+最优分配算法中，将原代码寻找地址最低的空闲内存，修改为大小最小的空闲内存即可：
+
+``` cpp
+	for (i = 0; i < n; i++) {
+		if (fr[i].size >= size) {
+			if (id == -1 || fr[i].size < fr[id].size) {
+				id = i;
+			}
+		}
+	}
+```
+
+在最差分配算法中，改成使用大小最大的空闲内存：
+
+``` cpp
+	for (i = 0; i < n; i++) {
+		if (fr[i].size >= size) {
+			if (id == -1 || fr[i].size > fr[id].size) {
+				id = i;
+			}
+		}
+	}
+```
+
+
+## “连续内存分配”与视频相关的课堂练习
 
 #### 5.1 计算机体系结构和内存层次
 
