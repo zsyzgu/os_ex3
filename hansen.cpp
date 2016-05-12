@@ -1,0 +1,45 @@
+#include <stdio.h>
+#include <monitor.h>
+#include <kmalloc.h>
+#include <assert.h>
+
+void     
+monitor_init (monitor_t * mtp, size_t num_cv) {
+    int i;
+    assert(num_cv>0);
+    mtp->next_count = 0;
+    mtp->cv = NULL;
+    sem_init(&(mtp->mutex), 1);
+    sem_init(&(mtp->next), 0);
+    mtp->cv =(condvar_t *) kmalloc(sizeof(condvar_t)*num_cv);
+    assert(mtp->cv!=NULL);
+    for(i=0; i<num_cv; i++){
+        mtp->cv[i].count=0;
+        sem_init(&(mtp->cv[i].sem),0);
+        mtp->cv[i].owner=mtp;
+    }
+}
+
+void 
+cond_signal (condvar_t *cvp) {
+   cprintf("cond_signal begin: cvp %x, cvp->count %d, cvp->owner->next_count %d\n", cvp, cvp->count, cvp->owner->next_count);  
+    if(cvp->count>0) {
+        up(&(cvp->sem));
+    }
+   cprintf("cond_signal end: cvp %x, cvp->count %d, cvp->owner->next_count %d\n", cvp, cvp->count, cvp->owner->next_count);
+}
+
+void
+cond_wait (condvar_t *cvp) {
+    cprintf("cond_wait begin:  cvp %x, cvp->count %d, cvp->owner->next_count %d\n", cvp, cvp->count, cvp->owner->next_count);
+    cvp->count++;
+    if(cvp->owner->next_count > 0)
+      up(&(cvp->owner->next));
+    else
+      up(&(cvp->owner->mutex));
+    down(&(cvp->sem));
+    down(&(cvp->sem)); 
+    down(&(cvp->owner->mutex));
+    cvp->count --;
+    cprintf("cond_wait end:  cvp %x, cvp->count %d, cvp->owner->next_count %d\n", cvp, cvp->count, cvp->owner->next_count);
+}
